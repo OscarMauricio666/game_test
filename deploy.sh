@@ -36,6 +36,14 @@ if ! docker info &>/dev/null 2>&1; then
   fail "El daemon de Docker no está corriendo. Inicia Docker Desktop e intenta de nuevo."
 fi
 
+# ── Limpiar stack anterior ─────────────────────────────────────────────────────
+
+RUNNING=$(docker compose -f "$ROOT_DIR/docker-compose.yml" ps -q 2>/dev/null || true)
+if [ -n "$RUNNING" ]; then
+  log "Deteniendo stack anterior..."
+  docker compose -f "$ROOT_DIR/docker-compose.yml" down 2>&1 || true
+fi
+
 # ── Build y despliegue ─────────────────────────────────────────────────────────
 
 log "Construyendo imágenes y levantando el stack..."
