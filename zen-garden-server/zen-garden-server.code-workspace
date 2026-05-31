@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../zen-garden"
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "zen-garden"
+	}
+}
