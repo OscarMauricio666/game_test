@@ -417,15 +417,38 @@ Por cada luz que ya no está en el nuevo estado:
 
 ## Cómo Ejecutar
 
+### Docker (recomendado)
+
+Desde la raíz del proyecto (`game_test/`) corre el stack completo:
+
+```bash
+./deploy.sh
+# → Juego disponible en http://localhost
+```
+
+El frontend se sirve desde Nginx en el puerto 80. El WebSocket se expone en `ws://localhost/ws` a través del proxy nginx — el navegador nunca habla directamente con el puerto 8080 del backend.
+
+### Desarrollo local
+
 ```bash
 # Instalar dependencias
 npm install
 
-# Servidor de desarrollo
+# Servidor de desarrollo con HMR
 npm run dev
+# → http://localhost:5173  (WebSocket proxiado a localhost:8080)
 
-# Build de producción
+# Build de producción (genera dist/)
 npm run build
 ```
 
-> **Nota**: Requiere que el servidor backend esté corriendo en `localhost:8080`.
+> En desarrollo, Vite hace de proxy WebSocket hacia `localhost:8080`. En producción (Docker), ese rol lo cumple nginx con la directiva `proxy_pass` en `nginx.conf`.
+
+### Estructura de archivos Docker
+
+```
+zen-garden/
+├── Dockerfile       → Build multi-stage: npm ci + vite build → nginx
+├── .dockerignore    → Excluye node_modules y dist del contexto de build
+└── nginx.conf       → Sirve SPA en / y proxia /ws al backend
+```

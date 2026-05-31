@@ -233,7 +233,71 @@ Partículas: 10 por luz, distribuidas en ángulos uniformes, con velocidad aleat
 
 ---
 
-## Cómo ejecutar el proyecto completo
+## Despliegue con Docker (recomendado)
+
+El stack completo corre en dos contenedores orquestados con Docker Compose. Nginx hace de reverse proxy entre el navegador y el backend Go: **el navegador nunca habla directamente con el puerto 8080**.
+
+```
+Navegador
+   │  HTTP / WS  (puerto 80)
+   ▼
+┌────────────────────────────────┐
+│  frontend (nginx:alpine)        │
+│  GET /         → dist/index.html│
+│  GET /ws       → proxy ──────► backend:8080/ws
+└────────────────────────────────┘
+           red interna Docker
+                    │
+   ┌────────────────┘
+   ▼
+┌────────────────────────────────┐
+│  backend (alpine + binario Go)  │
+│  :8080  — solo red interna      │
+└────────────────────────────────┘
+```
+
+### Archivos de despliegue
+
+```
+game_test/                      ← raíz del monorepo
+├── docker-compose.yml          ← orquesta backend + frontend
+├── deploy.sh                   ← script de un solo comando
+├── zen-garden/
+│   ├── Dockerfile              ← build Svelte → nginx
+│   ├── .dockerignore           ← excluye node_modules y dist
+│   └── nginx.conf              ← proxy /ws y SPA fallback
+└── zen-garden-server/
+    └── Dockerfile              ← build Go multi-stage
+```
+
+### Comando de despliegue
+
+```bash
+# Desde la raíz del proyecto:
+./deploy.sh
+```
+
+El script valida prerequisitos, construye las imágenes, espera a que los servicios estén sanos y muestra logs completos si algo falla.
+
+### Comandos Docker útiles
+
+```bash
+docker compose up --build -d    # levantar en background
+docker compose logs -f          # seguir logs de ambos servicios
+docker compose logs backend     # logs solo del backend Go
+docker compose logs frontend    # logs solo de nginx
+docker compose ps               # estado de los contenedores
+docker compose down             # detener y eliminar contenedores
+docker compose down --rmi all   # también elimina las imágenes
+```
+
+### Health check
+
+El `docker-compose.yml` define un healthcheck para el backend. El frontend solo arranca cuando el backend está sano (`depends_on: condition: service_healthy`), evitando errores 502 en el proxy WebSocket durante el arranque.
+
+---
+
+## Ejecución local (desarrollo)
 
 ```bash
 # Terminal 1: Backend
@@ -246,6 +310,11 @@ cd zen-garden
 npm install
 npm run dev
 # → App disponible en http://localhost:5173
+# → WebSocket proxiado por Vite: ws://localhost:5173/ws → backend:8080/ws
+
+# O bien, ambos con un solo comando:
+cd zen-garden-server
+./start.sh
 ```
 
 ---
@@ -262,3 +331,6 @@ npm run dev
 | Renderizado | HTML5 Canvas 2D | App.svelte |
 | Build | Vite 7 | vite.config.js |
 | Comunicación | WebSocket nativo (browser) | App.svelte |
+| Contenedores | Docker + Docker Compose | docker-compose.yml |
+| Reverse proxy | Nginx | zen-garden/nginx.conf |
+| Deploy | Bash | deploy.sh |

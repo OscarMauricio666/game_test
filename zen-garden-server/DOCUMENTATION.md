@@ -363,49 +363,67 @@ Navegador                       Servidor Go
 
 ## Cómo Ejecutar
 
-### Comando único (recomendado)
+### Docker (recomendado para pruebas y producción)
 
-Arranca el backend y el frontend juntos, y valida que todo funcione:
+Desde la raíz del proyecto (`game_test/`):
 
 ```bash
-./start.sh
+./deploy.sh
 ```
 
 El script:
-1. Libera los puertos 8080 y 5173 si están ocupados
-2. Compila y lanza el backend Go en `:8080`
-3. Lanza el frontend Svelte en `:5173`
-4. Valida que ambos servicios respondan
-5. Valida la conexión WebSocket de extremo a extremo (proxy Vite → Go)
-6. Detiene ambos servicios automáticamente al presionar `Ctrl+C`
-
-> **VS Code Port Forwarding**: solo necesitas exponer el puerto **5173**. El WebSocket viaja por el mismo puerto gracias al proxy configurado en Vite.
+1. Verifica que Docker esté instalado y corriendo
+2. Construye las imágenes de backend (Go multi-stage) y frontend (Svelte → nginx)
+3. Levanta ambos contenedores en segundo plano
+4. Espera a que el frontend responda en `http://localhost`
+5. Valida el proxy WebSocket a través de nginx
+6. Muestra los últimos 30 líneas de logs de ambos servicios si algo falla
 
 Salida esperada:
 
 ```
-[zen-garden] Iniciando backend Go en :8080...
-[zen-garden] Iniciando frontend Svelte en :5173...
-[zen-garden] Backend OK (WebSocket listo en ws://localhost:8080/ws)
-[zen-garden] Frontend OK (http://localhost:5173)
-[zen-garden] WebSocket OK (proxy Vite → Go funcionando)
+[zen-garden] Construyendo imágenes y levantando el stack...
+[zen-garden] Esperando que el frontend esté listo...
+[zen-garden] Frontend OK → http://localhost
+[zen-garden] Validando WebSocket a través de nginx...
+[zen-garden] WebSocket OK → ws://localhost/ws
 
 ============================================
-  Zen Garden corriendo correctamente
+  Zen Garden desplegado correctamente
 ============================================
-  Juego:    http://localhost:5173
-  Backend:  ws://localhost:8080/ws
+  Juego:      http://localhost
+  WebSocket:  ws://localhost/ws
+
+  Logs:       docker compose logs -f
+  Detener:    docker compose down
 ============================================
 ```
 
-### Ejecución manual (por separado)
+Comandos útiles mientras el stack corre:
 
 ```bash
-# Backend
-go run .
+docker compose logs -f          # logs en tiempo real
+docker compose logs backend     # solo backend Go
+docker compose ps               # estado de contenedores
+docker compose down             # detener todo
+```
 
-# Frontend (en otra terminal, desde zen-garden/)
-npm run dev
+### Desarrollo local (sin Docker)
+
+```bash
+# Backend (desde zen-garden-server/)
+go run .
+# → Escucha en :8080
+
+# Frontend (desde zen-garden/, en otra terminal)
+npm install && npm run dev
+# → App en http://localhost:5173
+```
+
+O ambos servicios con un solo comando:
+
+```bash
+cd zen-garden-server && ./start.sh
 ```
 
 El servidor escucha en `http://localhost:8080` con el endpoint WebSocket en `/ws`.
