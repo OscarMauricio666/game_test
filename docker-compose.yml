@@ -14,7 +14,8 @@ services:
     build:
       context: ./zen-garden
     ports:
-      - "8060:80"
+      - "127.0.0.1:8060:80"
+      - "[::1]:8060:80"
     depends_on:
       backend:
         condition: service_healthy
